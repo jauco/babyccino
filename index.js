@@ -20,17 +20,46 @@ function babyccino() {
     failedTests.slice(n)[0]();
   }
 
-  test.assertionLocations = assertionLibErrors.map(function (errorMaker) {
-    var assertionError;
-    var thisError;
-    try { errorMaker() } catch(e) { assertionError = e.stack; }
-    try { throw new Error(); } catch(e) { thisError = e.stack; }
-    return assertionError.split("\n").slice(0, -thisError.split("\n").length).slice(-1).join("");
-  });
+  test.assertionLocations = initAssertionLocations();
 
   if (module.hot) {
     module.hot.accept(require.context(babyccinoPath, true, babyccinoRegex).id, () => runChangedTests(require.context(babyccinoPath, true, babyccinoRegex), tests, testResults, failedTests));
   }
+}
+
+function initAssertionLocations() {
+  return [
+    //Feel free to add other assertion libraries here
+    function () {
+      try {
+        var expect = require("unexpected");
+      } catch (e) {
+        return;
+      }
+      expect(true, "to be", false);
+    },
+    function () {
+      try {
+        var chai = require("chai");
+      } catch (e) {
+        return;
+      }
+      //chai has its own stack mangling routine, but I like mine better so I'm disabling it here
+      chai.config.includeStack = true;
+      chai.expect(true).to.eql(false);
+    }
+  ].map(function (errorMaker) {
+    var assertionError;
+    var thisError;
+    try { errorMaker() } catch(e) { assertionError = e.stack; }
+    try { throw new Error(); } catch(e) { thisError = e.stack; }
+    if (assertionError) {
+      return assertionError.split("\n").slice(0, -thisError.split("\n").length).slice(-1).join("");
+    } else {
+      return undefined;
+    }
+  }).filter(function (line) { return line !== undefined; });
+
 }
 
 function runChangedTests(newTests, loadedTests, testResults, failedTests) {
@@ -69,4 +98,4 @@ function displayResults(testResults) {
 	}
 }
 
-module.exports = babyccino;
+babyccino();
