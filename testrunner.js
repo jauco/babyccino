@@ -63,10 +63,10 @@ function test(f, filename) {
       groupStarted: false
     };
     f(describe, it.bind(null, context), /*xdescribe*/no_op, /*xit*/no_op);
-    if (context.groupStarted) {
-      console.groupEnd();
-    }
     return context.chain.then(function () {
+      if (context.groupStarted) {
+        console.groupEnd();
+      }
       return context.tests;
     });
   })
